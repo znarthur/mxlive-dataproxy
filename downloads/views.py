@@ -63,11 +63,9 @@ def send_raw_file(request, full_path, attachment=False):
     Use django's static serve option for development servers"""
 
     if not os.path.exists(full_path):
-        print(full_path)
         full_path = '{}{}'.format(ARCHIVE_ROOT, full_path)
 
     if not os.path.exists(full_path):
-        print(full_path)
         raise Http404
 
     if FRONTEND == "xsendfile":
@@ -159,6 +157,9 @@ def send_archive(request, path, key=None):  # Add base parameter and another url
         archive_dir = archive_dir if archive_dir[-1] == '/' else '/'.join(archive_dir.split('/')[:-1])
         if len([a for a in archive_dir.split(os.sep) if a]) < 3:
             raise http.HttpResponseForbidden
+
+    if not os.path.exists(archive_dir):
+        archive_dir = "{}{}".format(ARCHIVE_ROOT, archive_dir)
 
     normpath = os.path.normpath(archive_dir)
 
