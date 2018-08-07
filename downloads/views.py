@@ -14,11 +14,16 @@ import subprocess
 import urllib
 from django.http import StreamingHttpResponse
 
+
 CACHE_DIR = getattr(settings, 'DOWNLOAD_CACHE_DIR', '/tmp')
 FRONTEND = getattr(settings, 'DOWNLOAD_FRONTEND', 'xsendfile')
 USER_ROOT = getattr(settings, 'LDAP_USER_ROOT', '/users')
 ARCHIVE_ROOT = getattr(settings, 'ARCHIVE_ROOT', '/archive')
 ROOT_RE = re.compile('^{}'.format(USER_ROOT))
+
+import logging
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 
 def create_cache_dir(key):
@@ -66,6 +71,7 @@ def send_raw_file(request, full_path, attachment=False):
         full_path = '{}{}'.format(ARCHIVE_ROOT, full_path)
 
     if not os.path.exists(full_path):
+        logger.warning("Path not found: {}".format(full_path))
         raise Http404
 
     if FRONTEND == "xsendfile":
