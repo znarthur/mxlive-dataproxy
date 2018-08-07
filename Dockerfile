@@ -20,6 +20,7 @@ RUN /bin/cp /dataserver/deploy/dataserver.conf /etc/httpd/conf.d/
 RUN /dataserver/manage.py collectstatic --noinput
 
 VOLUME ["/users"]
+VOLUME ["/archive"]
 
 CMD ["/run-server.sh"]
 
