@@ -14,11 +14,8 @@ import os, sys
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.extend([BASE_DIR, os.path.join(BASE_DIR, 'libs'), os.path.join(BASE_DIR, 'local')])
+sys.path.extend([BASE_DIR, os.path.join(BASE_DIR, 'local')])
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'e&9lwk#!q!ab*m(@w1=-!+#x90cbp7h8=6a7uk7*wf7*tw7g=%'
@@ -26,7 +23,7 @@ SECRET_KEY = 'e&9lwk#!q!ab*m(@w1=-!+#x90cbp7h8=6a7uk7*wf7*tw7g=%'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['mxlive-data', 'opi2051-003']
+ALLOWED_HOSTS = ['mxlive-data']
 DOWNLOAD_FRONTEND = 'static'
 DOWNLOAD_CACHE_DIR = 'local/cache'
 

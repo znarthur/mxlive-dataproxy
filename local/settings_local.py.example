@@ -1,0 +1,28 @@
+DEBUG = True
+
+DOWNLOAD_FRONTEND = 'static'
+DOWNLOAD_CACHE_DIR = 'local/cache'
+# The top level
+LDAP_USER_ROOT = '/users'
+ARCHIVE_ROOT = '/archive'
+
+ALLOWED_HOSTS = ['mxlive-data', 'example.com']
+
+CORS_ORIGIN_WHITELIST = (
+    'example.com:443',
+)
+
+DATABASES = {
+    'default': {
+	    'ENGINE': 'django.db.backends.mysql',
+	    'NAME': 'dataproxy',
+	    'USER': 'root',
+	    'PASSWORD': '',
+	    'HOST': 'db.example.com',
+	    'PORT': ''
+    },
+}
+
+ADMINS = [
+    ('Admin','admin@example.com'),
+]

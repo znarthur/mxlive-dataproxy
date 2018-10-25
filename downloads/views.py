@@ -39,7 +39,7 @@ class CreatePath(View):
     def post(self, request, *args, **kwargs):
         path = request.POST.get('path')
         obj = SecurePath()
-        obj.path = re.sub(ROOT_RE, "/users", path)
+        obj.path = re.sub(ROOT_RE, USER_ROOT, path)
         obj.save()
         return JsonResponse({'key': obj.key})
 

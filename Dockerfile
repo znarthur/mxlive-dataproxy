@@ -5,11 +5,13 @@ RUN dnf -y update && \
   dnf -y install httpd python-pip mod_wsgi postgresql-libs python-psycopg2 mod_xsendfile \
   python-crypto python-memcached mod_ssl python-docutils unzip tar gzip ImageMagick && dnf clean all
 
-RUN pip install --upgrade pip &&  pip install 'Django==1.11'
+ADD requirements.txt /
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 EXPOSE 443
 
 RUN dnf -y install CBFlib && dnf clean all
+
 ADD . /dataserver
 ADD ./local /dataserver/local
 ADD deploy/run-server.sh /run-server.sh
