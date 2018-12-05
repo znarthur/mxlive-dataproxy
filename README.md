@@ -24,7 +24,7 @@ To add mxlive-dataproxy to your full MxLIVE docker deployment:
 --------------------------------------------------------------
 1. Build the docker image with the command: 
 
-    sudo docker build --rm -t mxlive-dataproxy:latest .
+        sudo docker build --rm -t mxlive-dataproxy:latest .
 
 2. In the top-level of your mxlive docker deployment directory, place your settings_local.py file in data-local/.
    * Create a logs/ directory in data-local/, if it does not already exist.
