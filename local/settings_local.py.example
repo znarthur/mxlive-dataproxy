@@ -2,8 +2,11 @@ DEBUG = True
 
 DOWNLOAD_FRONTEND = 'static'
 DOWNLOAD_CACHE_DIR = 'local/cache'
-# The top level
+
+# LDAP_USER_ROOT points to the top level of your data directory.
 LDAP_USER_ROOT = '/users'
+# ARCHIVE_ROOT points to an optional secondary location where additional copies of files may be stored.
+# It is assumed that ARCHIVE_ROOT is prepended to the original path (including LDAP_USER_ROOT).
 ARCHIVE_ROOT = '/archive'
 
 ALLOWED_HOSTS = ['mxlive-data', 'example.com']
