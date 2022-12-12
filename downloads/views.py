@@ -66,6 +66,10 @@ def send_uncompressed_file(request, obj, full_path):
 def send_raw_file(request, full_path, attachment=False):
     """Send a file using mod_xsendfile or similar functionality.
     Use django's static serve option for development servers"""
+    if 'USER' in os.environ:
+        os.setuid(UID)
+    if 'GROUP' in os.environ:
+        os.setgid(GID)
 
     if not os.path.exists(full_path):
         full_path = '{}{}'.format(ARCHIVE_ROOT, full_path)
@@ -160,18 +164,23 @@ def send_archive(request, path, key=None):  # Add base parameter and another url
     else:
         paths = SecurePath.objects.filter(key__in=request.GET.getlist('urls[]')).values_list('path',flat=True)
         archive_dir = os.path.commonprefix(paths)
-        archive_dir = archive_dir if archive_dir[-1] == '/' else '/'.join(archive_dir.split('/')[:-1])
-        if len([a for a in archive_dir.split(os.sep) if a]) < 3:
+        if not archive_dir:
+           archive_dir = path.split('.')[0].replace('/',os.sep)
+        else:
+           archive_dir = archive_dir if archive_dir[-1] == '/' else os.sep.join(archive_dir.split('/')[:-1])
+        if len([a for a in archive_dir.split(os.sep) if a]) < 2:
             raise http.HttpResponseForbidden
 
     if not os.path.exists(archive_dir):
         archive_dir = "{}{}".format(ARCHIVE_ROOT, archive_dir)
+        if 'archive' not in ARCHIVE_ROOT:
+            archive_dir = archive_dir.replace("archive/", "")
 
     normpath = os.path.normpath(archive_dir)
 
     if os.path.exists(archive_dir):
         p = subprocess.Popen(
-            ['tar', '-czf', '-', os.path.basename(normpath)],
+            ['tar', '-czf', '-', '--exclude=binned', os.path.basename(normpath)],
             cwd=os.path.dirname(normpath),
             stdout=subprocess.PIPE
         )
@@ -181,5 +190,6 @@ def send_archive(request, path, key=None):  # Add base parameter and another url
 
         return response
     else:
+        logger.error("Path not found: {}".format(normpath))
         raise Http404
 
