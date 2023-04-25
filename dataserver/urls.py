@@ -1,9 +1,10 @@
-from django.conf.urls import url, include
+from django.conf.urls import include
+from django.urls import path
 from django.contrib import admin
 
 admin.autodiscover()
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^download/', include('downloads.urls')),
+    path('admin/', admin.site.urls),
+    path('download/', include('downloads.urls')),
 ]

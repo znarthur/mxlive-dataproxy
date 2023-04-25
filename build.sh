@@ -1,3 +1,4 @@
 #!/bin/bash
-
-sudo docker build --rm -t srv-cmcf4:5000/mxlive-dataproxy:latest . && sudo docker push srv-cmcf4:5000/mxlive-dataproxy:latest
+#git submodule update --recursive
+sudo docker build --rm -t mxlive-dataproxy:latest .
+#sudo docker push srv-cmcf4:5000/mxlive-dataproxy:latest
