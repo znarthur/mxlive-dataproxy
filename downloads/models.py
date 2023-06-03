@@ -1,5 +1,6 @@
 from django.db import models
 import hashlib
+from uuid import uuid4
 from django.core.exceptions import ObjectDoesNotExist
 
 
@@ -14,7 +15,7 @@ class SecurePath(models.Model):
         # in the database
 
         h = hashlib.new('ripemd160')  # no successful collision attacks yet
-        h.update(self.path)
+        h.update((self.path + str(uuid4())).encode('utf-8'))
         self.key = h.hexdigest()
         try:
             obj = SecurePath.objects.get(key=self.key)

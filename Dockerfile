@@ -1,18 +1,26 @@
-FROM fedora:26
+FROM fedora:36
+
 MAINTAINER Kathryn Janzen <kathryn.janzen@lightsource.ca>
 ARG uid
 ARG gid
 
-RUN dnf -y update && \
-  dnf -y install httpd python-pip mod_wsgi postgresql-libs python-psycopg2 mod_xsendfile \
-  python-crypto python-memcached mod_ssl python-docutils unzip tar gzip ImageMagick && dnf clean all
+RUN dnf clean all && rm -r /var/cache/dnf  && dnf upgrade -y && dnf update -y
+
+RUN dnf -y update && dnf clean all
+
+RUN dnf -y update && dnf -y install httpd python-pip mod_wsgi postgresql-libs python-psycopg2 mod_xsendfile \
+  python-crypto python-memcached mod_ssl python-docutils unzip tar libgfortran hdf5 libquadmath python3-lz4 && dnf clean all
+
+ADD CBFlib-0.9.7-2.fc36.x86_64.rpm /
+RUN rpm -ivh CBFlib-0.9.7-2.fc36.x86_64.rpm
+
+ADD pycbf-0.9.6.5-cp310-cp310-linux_x86_64.whl /
+RUN pip install pycbf-0.9.6.5-cp310-cp310-linux_x86_64.whl
 
 ADD requirements.txt /
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 EXPOSE 443
-
-RUN dnf -y install CBFlib && dnf clean all
 
 ADD . /dataserver
 ADD ./local /dataserver/local
@@ -21,7 +29,9 @@ ADD deploy/wait-for-it.sh /wait-for-it.sh
 RUN chmod -v +x /run-server.sh /wait-for-it.sh
 RUN /bin/cp /dataserver/deploy/dataserver.conf /etc/httpd/conf.d/
 
-RUN /dataserver/manage.py collectstatic --noinput
+RUN dnf -y install libglvnd-glx
+
+RUN /usr/bin/python3 /dataserver/manage.py collectstatic --noinput
 RUN /usr/sbin/groupadd -g $gid appuser && /usr/sbin/adduser -u $uid  -g appuser -g apache appuser
 
 

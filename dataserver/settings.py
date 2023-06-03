@@ -23,9 +23,9 @@ SECRET_KEY = 'e&9lwk#!q!ab*m(@w1=-!+#x90cbp7h8=6a7uk7*wf7*tw7g=%'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['mxlive-data']
+ALLOWED_HOSTS = ['*']
 DOWNLOAD_FRONTEND = 'static'
-DOWNLOAD_CACHE_DIR = 'local/cache'
+DOWNLOAD_CACHE_DIR = 'cache'
 
 # Application definition
 
@@ -72,7 +72,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'dataserver.wsgi.application'
 
 CORS_ORIGIN_WHITELIST = (
-    'cmcf.lightsource.ca:443',
+    'https://cmcf.lightsource.ca',
+    'http://127.0.0.1',
 )
 
 # Database
@@ -121,9 +122,10 @@ USE_TZ = True
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
+LDAP_USER_ROOT = '/users'
 
 try:
-    from settings_local import *
+    from local.settings import *
 except ImportError:
     pass
 
