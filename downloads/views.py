@@ -23,6 +23,7 @@ USER_DIR = getattr(settings, 'DOWNLOAD_USERS_DIR', '/users')
 ARCHIVE_DIR = getattr(settings, 'DOWNLOAD_ARCHIVE_DIR', '/archive')
 CACHE_DIR = getattr(settings, 'DOWNLOAD_CACHE_DIR', '/cache')
 FRONTEND = getattr(settings, 'DOWNLOAD_FRONTEND', 'xsendfile')
+EXTENSIONS = getattr(settings, 'EXTENSIONS', ['nxs', 'h5', 'csv', 'dat', 'xdi', 'ibw', 'png', 'tiff'])
 
 USER_ROOT = getattr(settings, 'LDAP_USER_ROOT', '/users')
 ARCHIVE_ROOT = getattr(settings, 'ARCHIVE_ROOT', '/users')
@@ -173,6 +174,34 @@ class SendFrame(View):
         return send_raw_file(request, utils.get_missing_frame())
 
 
+class SendMulti(View):
+
+    def get(self, request, *args, **kwargs):
+        key = kwargs.get('key')
+        path = kwargs.get('path')
+        try:
+            directory = utils.get_download_path(key)
+        except:
+            return send_raw_file(request, utils.get_missing_frame())
+        if not os.path.exists(directory):
+            directory = re.sub(ARCHIVE_RE, ARCHIVE_DIR, directory)
+        if os.path.exists(directory):
+            frame_files = [f"{f}.{a}" for f in request.GET.getlist('frame') for a in EXTENSIONS
+                           if os.path.exists(os.path.join(directory, f"{f}.{a}"))]
+            p = subprocess.Popen(
+                ['tar', '-czf', '-'] + frame_files,
+                cwd=os.path.dirname(directory),
+                stdout=subprocess.PIPE
+            )
+
+            response = StreamingHttpResponse(p.stdout, content_type='application/x-gzip')
+            response['Content-Disposition'] = 'attachment; filename={}'.format(path)
+
+            return response
+        else:
+            return http.HttpResponseNotFound()
+
+
 def send_file(request, key, path):
     document_root = utils.get_download_path(key)
     # Clean up given path to only allow serving files below document_root.
@@ -191,25 +220,18 @@ def send_file(request, key, path):
 
 
 def send_archive(request, key, path):  # Add base parameter and another url
-    if key:
-        obj = get_object_or_404(SecurePath, key=key)
-        target_path = obj.path.rstrip(os.sep)
-    else:
-        paths = SecurePath.objects.filter(key__in=request.GET.getlist('urls[]')).values_list('path',flat=True)
-        target_path = os.path.commonprefix(paths)
-        if not target_path:
-           target_path = path.split('.')[0].replace('/',os.sep)
-        else:
-           target_path = target_path if target_path[-1] == '/' else os.sep.join(target_path.split('/')[:-1])
-        if len([a for a in target_path.split(os.sep) if a]) < 2:
-            raise http.HttpResponseForbidden
+    obj = get_object_or_404(SecurePath, key=key)
+    target_path = obj.path.rstrip(os.sep)
+
+    if len(target_path.split(os.sep)) < 4:
+        return http.HttpResponseForbidden()
 
     archived_path = re.sub(ARCHIVE_RE, ARCHIVE_DIR, target_path)
     source_path = os.path.normpath(target_path if os.path.exists(target_path) else archived_path)
 
     if os.path.exists(source_path):
         p = subprocess.Popen(
-            ['tar', '-czf', '-', '--exclude=binned', os.path.basename(normpath)],
+            ['tar', '-czf', '-', os.path.basename(source_path)],
             cwd=os.path.dirname(source_path),
             stdout=subprocess.PIPE
         )
@@ -219,6 +241,5 @@ def send_archive(request, key, path):  # Add base parameter and another url
 
         return response
     else:
-        logger.error("Path not found: {}".format(normpath))
         return http.HttpResponseNotFound()
 
