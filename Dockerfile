@@ -36,4 +36,3 @@ RUN /usr/sbin/groupadd -g $gid appuser && /usr/sbin/adduser -u $uid  -g appuser 
 
 
 CMD ["/run-server.sh"]
-
