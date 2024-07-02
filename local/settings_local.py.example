@@ -17,12 +17,12 @@ CORS_ORIGIN_WHITELIST = (
 
 DATABASES = {
     'default': {
-	    'ENGINE': 'django.db.backends.mysql',
-	    'NAME': 'dataproxy',
-	    'USER': 'root',
-	    'PASSWORD': '',
-	    'HOST': 'db.example.com',
-	    'PORT': ''
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'dataproxy',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'db.example.com',
+            'PORT': ''
     },
 }
 

@@ -72,10 +72,15 @@ def send_uncompressed_file(request, key, full_path):
 def send_raw_file(request, full_path, attachment=False):
     """Send a file using mod_xsendfile or similar functionality.
     Use django's static serve option for development servers"""
-    if 'USER' in os.environ:
-        os.setuid(UID)
-    if 'GROUP' in os.environ:
-        os.setgid(GID)
+    try:
+        if 'USER' in os.environ:
+            UID = int(os.environ['USER'])
+            os.setuid(UID)
+        if 'GROUP' in os.environ:
+            GID = int(os.environ['GROUP'])
+            os.setgid(GID)
+    except:
+        pass
 
     original_path = full_path
     archived_path = re.sub(ARCHIVE_RE, ARCHIVE_DIR, original_path)
@@ -200,6 +205,45 @@ class SendMulti(View):
             return response
         else:
             return http.HttpResponseNotFound()
+
+def fetch_hdf5(request, key, path, file=False):
+    import h5py
+    document_root = utils.get_download_path(key)
+    # Clean up given path to only allow serving files below document_root.
+    path = posixpath.normpath(urllib.parse.unquote(path))
+    drive, path = os.path.splitdrive(path)  # Remove drive in case path is absolute
+    path = path.lstrip(os.path.sep)
+    full_path = os.path.normpath(os.path.join(document_root, path))
+
+    if not full_path.startswith(document_root):
+        return http.HttpResponseNotFound()
+    try:
+        h5 = h5py.File(full_path, 'r')
+        if file:
+            return h5
+        h5path = request.GET.get('entry')
+        data = h5[h5path].getvalue()
+        return http.HttpResponse(data, content_type='application/octet-stream')
+    except:
+        return http.HttpResponseNotFound()
+    return
+
+
+def get_jpeg_image_bytes(img):
+    import io
+    from PIL import Image
+    pimg = Image.frombytes("RGB", (img.shape[1], img.shape[0]), img)
+    with io.BytesIO() as bytesIO:
+        pimg.save(bytesIO, "PNG", optimize=True)
+        return bytesIO.getvalue()
+
+def send_hdf5_snapshot(request, key, path):
+    h5 = fetch_hdf5(request, key, path, file=True)
+    NXentry = [e for e in h5.keys() if 'NXentry' in str(h5[e].attrs.get('NX_class'))]
+    if NXentry:
+        NXentry = NXentry[0]
+    img = await get_jpeg_image_bytes(h5[NXentry + '/sample/image'][()])
+    return http.HttpResponse(img, content_type='image/png')
 
 
 def send_file(request, key, path):
