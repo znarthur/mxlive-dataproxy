@@ -3,4 +3,7 @@ django-cors-headers
 PyYaml==5.1
 mxio
 opencv-contrib-python
-
+h5py
+Pillow
+psycopg2-binary
+importlib-metadata

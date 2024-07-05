@@ -1,6 +1,7 @@
 from django.urls import path, re_path
 import downloads.views as views
 
+
 urlpatterns = [
     path('data/create/', views.CreatePath.as_view()),
 
@@ -11,3 +12,6 @@ urlpatterns = [
     re_path(r'^files/hdf5/(?P<key>[a-f0-9]{40})/(?P<path>.+)$', views.fetch_hdf5),
     re_path(r'^files/frame/(?P<key>[a-f0-9]{40})/(?P<path>.+)/(?P<brightness>\w{2}).png$', views.SendFrame.as_view()),
 ]
+
+
+

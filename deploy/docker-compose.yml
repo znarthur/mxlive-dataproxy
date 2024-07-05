@@ -1,0 +1,35 @@
+version: "3"
+
+  files:
+    image: docker.clsi.ca/sgm/mxlive-dataproxy:latest
+    environment:
+      - SERVER_NAME=files
+      - CERT_PATH=/etc/ssl/proxy
+      - COMMON_NAME=files
+    networks:
+      - sgmxlive_network
+    restart: always
+    volumes:
+      - ./apache_config/:/etc/httpd/conf.d/:ro
+      - ../../files/local:/dataserver/local
+      - ../../files/users:/users:ro
+      - /beamlinedata:/beamlinedata:ro
+      - ../../files/logs:/logs
+      - ../../files/cache:/cache
+      - sgmcerts:/etc/ssl/
+    ports:
+      - "8080:443"
+
+networks:
+   sgmxlive_network:
+     driver: overlay
+
+volumes:
+  sgmcerts:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '/home/arthurz/sgmlive/certs'
+  media:
+  pdf:

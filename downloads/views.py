@@ -10,6 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from downloads.models import SecurePath
 import downloads.utils as utils
 
+import base64
+import json
 import os
 import posixpath
 import re
@@ -117,13 +119,71 @@ def send_raw_file(request, full_path, attachment=False):
 
     return response
 
+def b64EncodeString(msg):
+    msg_bytes = msg.encode('ascii')
+    base64_bytes = base64.b64encode(msg_bytes)
+    return base64_bytes.decode('ascii')
+
+def fetch_hdf5(request, key, path, file=False):
+    import h5py
+    import numpy as np
+    try:
+        document_root = SecurePath.objects.filter(key=key).first().path
+    except AttributeError:
+        document_root = USER_ROOT
+    print(document_root)
+    # Clean up given path to only allow serving files below document_root.
+    path = posixpath.normpath(urllib.parse.unquote(path))
+    drive, path = os.path.splitdrive(path)  # Remove drive in case path is absolute
+    path = path.lstrip(os.path.sep)
+    full_path = os.path.normpath(os.path.join(document_root, path))
+    if not full_path.startswith(document_root):
+        return http.HttpResponseNotFound()
+    try:
+        h5 = h5py.File(full_path, 'r')
+        if file:
+            return h5
+        h5path_list = request.GET.getlist('entry')
+        fetched_data = {}
+        for h5path in h5path_list:
+            try:
+                h5_obj = h5[h5path]
+                if np.issubdtype(h5_obj, np.number):
+                    data = np.array(h5[h5path][()]).tolist()
+                elif hasattr(h5[h5path][()], 'decode'):
+                    data = h5[h5path][()].decode('utf-8')
+                    try:
+                        data = float(data)
+                    except:
+                        pass
+                else:
+                    data = f"{h5[h5path][()]}"
+                fetched_data.update({h5path: data})
+            except Exception as e:
+                print(e)
+        bdata = json.dumps(fetched_data)
+        return http.HttpResponse(bdata, content_type='application/json')
+    except:
+        return http.HttpResponseNotFound()
+
+
+def get_jpeg_image_bytes(img):
+    import io
+    from PIL import Image
+    pimg = Image.frombytes("RGB", (img.shape[1], img.shape[0]), img)
+    with io.BytesIO() as bytesIO:
+        pimg.save(bytesIO, "PNG", optimize=True)
+        return bytesIO.getvalue()
+
+
 
 def send_snapshot(request, key, path):
     try:
-        directory = utils.get_download_path(key)
-    except:
-        return send_raw_file(request, utils.get_missing_snapshot())
-
+        directory = SecurePath.objects.filter(key=key).first().path
+    except AttributeError:
+        directory = path
+    if '/' != directory[0]:
+        directory = USER_DIR + directory
     if not os.path.exists(directory):
         directory = re.sub(ARCHIVE_RE, ARCHIVE_DIR, directory)
     if os.path.exists(directory):
@@ -145,6 +205,14 @@ def send_snapshot(request, key, path):
             except subprocess.CalledProcessError:
                 return http.HttpResponseNotFound()
             return send_raw_file(request, filename, attachment=False)
+        elif ext.lower() in ['.h5', '.nxs', '.hdf5']:
+            h5 = fetch_hdf5(request, key, path, file=True)
+            NXentry = [e for e in h5.keys() if 'NXentry' in str(h5[e].attrs.get('NX_class'))]
+            print(NXentry)
+            if NXentry:
+                NXentry = NXentry[0]
+            img = get_jpeg_image_bytes(h5[NXentry + '/sample/image'][()])
+            return http.HttpResponse(img, content_type='image/png')
     return send_raw_file(request, utils.get_missing_snapshot())
 
 
@@ -188,6 +256,8 @@ class SendMulti(View):
             directory = utils.get_download_path(key)
         except:
             return send_raw_file(request, utils.get_missing_frame())
+        if '/' != directory[0]:
+            directory = USER_DIR + directory
         if not os.path.exists(directory):
             directory = re.sub(ARCHIVE_RE, ARCHIVE_DIR, directory)
         if os.path.exists(directory):
@@ -205,45 +275,6 @@ class SendMulti(View):
             return response
         else:
             return http.HttpResponseNotFound()
-
-def fetch_hdf5(request, key, path, file=False):
-    import h5py
-    document_root = utils.get_download_path(key)
-    # Clean up given path to only allow serving files below document_root.
-    path = posixpath.normpath(urllib.parse.unquote(path))
-    drive, path = os.path.splitdrive(path)  # Remove drive in case path is absolute
-    path = path.lstrip(os.path.sep)
-    full_path = os.path.normpath(os.path.join(document_root, path))
-
-    if not full_path.startswith(document_root):
-        return http.HttpResponseNotFound()
-    try:
-        h5 = h5py.File(full_path, 'r')
-        if file:
-            return h5
-        h5path = request.GET.get('entry')
-        data = h5[h5path].getvalue()
-        return http.HttpResponse(data, content_type='application/octet-stream')
-    except:
-        return http.HttpResponseNotFound()
-    return
-
-
-def get_jpeg_image_bytes(img):
-    import io
-    from PIL import Image
-    pimg = Image.frombytes("RGB", (img.shape[1], img.shape[0]), img)
-    with io.BytesIO() as bytesIO:
-        pimg.save(bytesIO, "PNG", optimize=True)
-        return bytesIO.getvalue()
-
-def send_hdf5_snapshot(request, key, path):
-    h5 = fetch_hdf5(request, key, path, file=True)
-    NXentry = [e for e in h5.keys() if 'NXentry' in str(h5[e].attrs.get('NX_class'))]
-    if NXentry:
-        NXentry = NXentry[0]
-    img = await get_jpeg_image_bytes(h5[NXentry + '/sample/image'][()])
-    return http.HttpResponse(img, content_type='image/png')
 
 
 def send_file(request, key, path):
@@ -264,15 +295,18 @@ def send_file(request, key, path):
 
 
 def send_archive(request, key, path):  # Add base parameter and another url
-    obj = get_object_or_404(SecurePath, key=key)
-    target_path = obj.path.rstrip(os.sep)
+    if key:
+        obj = get_object_or_404(SecurePath, key=key)
+        target_path = obj.path.rstrip(os.sep)
+    else:
+        target_path = path.rstrip(os.sep)
 
     if len(target_path.split(os.sep)) < 4:
         return http.HttpResponseForbidden()
-
+    if '/' != target_path[0]:
+        target_path = USER_DIR + target_path
     archived_path = re.sub(ARCHIVE_RE, ARCHIVE_DIR, target_path)
     source_path = os.path.normpath(target_path if os.path.exists(target_path) else archived_path)
-
     if os.path.exists(source_path):
         p = subprocess.Popen(
             ['tar', '-czf', '-', os.path.basename(source_path)],
