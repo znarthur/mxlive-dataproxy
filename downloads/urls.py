@@ -7,9 +7,11 @@ urlpatterns = [
 
     re_path(r'^files/archive/(?P<key>[a-f0-9]{40})/(?P<path>[^.]+\.tar\.gz)$', views.send_archive),
     re_path(r'^files/snapshot/(?P<key>[a-f0-9]{40})/(?P<path>.+)$', views.send_snapshot),
+    re_path(r'^files/snapshot/(?P<path>.+)$', views.send_snapshot),
     re_path(r'^files/raw/(?P<key>[a-f0-9]{40})/(?P<path>.+)$', views.send_file),
     re_path(r'^files/multi/(?P<key>[a-f0-9]{40})/(?P<path>[^.]+\.tar\.gz)$', views.SendMulti.as_view()),
-    re_path(r'^files/hdf5/(?P<key>[a-f0-9]{40})/(?P<path>.+)$', views.fetch_hdf5),
+    re_path(r'^files/multi/(?P<path>[^.]+\.tar\.gz)$', views.SendMulti.as_view()),
+    re_path(r'^files/hdf5/(?P<path>.+)$', views.fetch_hdf5),
     re_path(r'^files/frame/(?P<key>[a-f0-9]{40})/(?P<path>.+)/(?P<brightness>\w{2}).png$', views.SendFrame.as_view()),
 ]
 

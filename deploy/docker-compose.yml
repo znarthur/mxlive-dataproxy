@@ -1,5 +1,6 @@
 version: "3"
 
+services:
   files:
     image: docker.clsi.ca/sgm/mxlive-dataproxy:latest
     environment:
@@ -8,28 +9,31 @@ version: "3"
       - COMMON_NAME=files
     networks:
       - sgmxlive_network
-    restart: always
     volumes:
       - ./apache_config/:/etc/httpd/conf.d/:ro
-      - ../../files/local:/dataserver/local
-      - ../../files/users:/users:ro
+      - ../../mxlive-dataproxy/local:/dataserver/local
+      - ../../mxlive-dataproxy/local/users:/users:ro
       - /beamlinedata:/beamlinedata:ro
-      - ../../files/logs:/logs
-      - ../../files/cache:/cache
-      - sgmcerts:/etc/ssl/
+      - ../../mxlive-dataproxy/local/logs:/logs
+      - ../../mxlive-dataproxy/local/cache:/cache
+      - sgmcerts:/etc/ssl/proxy
     ports:
       - "8080:443"
+    deploy:
+      restart_policy:
+        delay: 15s
+        window: 60s
 
 networks:
    sgmxlive_network:
-     driver: overlay
+     external: true
 
 volumes:
   sgmcerts:
-    driver: local
-    driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: '/home/arthurz/sgmlive/certs'
+#    driver: local
+#    driver_opts:
+#      type: 'none'
+#      o: 'bind'
+#      device: '/home/arthurz/sgmlive/certs'
   media:
   pdf:

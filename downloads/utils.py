@@ -8,7 +8,6 @@ import cv2
 import numpy
 import shutil
 
-from mxio import read_image
 
 MIN_MAX_PERCENTILES = (1, 99.85)
 
@@ -26,6 +25,7 @@ def get_download_path(key):
 
 
 def load_image(filename, brightness=0.0, resolution=(1024, 1024)):
+    from mxio import read_image
     """
     Read file and return an PIL image of desired resolution histogram
     :param filename: Image File (e.g. filename.img, filename.cbf)

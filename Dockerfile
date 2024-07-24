@@ -11,7 +11,6 @@ RUN dnf -y update && dnf clean all
 RUN dnf -y update && dnf -y install httpd python-pip mod_wsgi postgresql-libs python-psycopg2 mod_xsendfile \
   python-crypto python-memcached mod_ssl python-docutils unzip tar libgfortran hdf5 libquadmath python3-lz4 && dnf clean all
 
-RUN pip install pycbf
 ADD requirements.txt /
 RUN pip install --upgrade pip && pip install -r requirements.txt
 

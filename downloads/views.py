@@ -131,7 +131,6 @@ def fetch_hdf5(request, key, path, file=False):
         document_root = SecurePath.objects.filter(key=key).first().path
     except AttributeError:
         document_root = USER_ROOT
-    print(document_root)
     # Clean up given path to only allow serving files below document_root.
     path = posixpath.normpath(urllib.parse.unquote(path))
     drive, path = os.path.splitdrive(path)  # Remove drive in case path is absolute
@@ -177,7 +176,7 @@ def get_jpeg_image_bytes(img):
 
 
 
-def send_snapshot(request, key, path):
+def send_snapshot(request, path, key=''):  # Add base parameter and another url
     try:
         directory = SecurePath.objects.filter(key=key).first().path
     except AttributeError:
@@ -252,10 +251,14 @@ class SendMulti(View):
     def get(self, request, *args, **kwargs):
         key = kwargs.get('key')
         path = kwargs.get('path')
-        try:
-            directory = utils.get_download_path(key)
-        except:
-            return send_raw_file(request, utils.get_missing_frame())
+        directory = os.path.dirname(path)
+
+        if key:
+            try:
+                obj = SecurePath.objects.get(key=key)
+                directory = obj.path
+            except SecurePath.DoesNotExist:
+                pass
         if '/' != directory[0]:
             directory = USER_DIR + directory
         if not os.path.exists(directory):
@@ -263,9 +266,11 @@ class SendMulti(View):
         if os.path.exists(directory):
             frame_files = [f"{f}.{a}" for f in request.GET.getlist('frame') for a in EXTENSIONS
                            if os.path.exists(os.path.join(directory, f"{f}.{a}"))]
+            logger.warning("Path: {}, Request {}".format(directory, request.GET.getlist('frame')))
+
             p = subprocess.Popen(
                 ['tar', '-czf', '-'] + frame_files,
-                cwd=os.path.dirname(directory),
+                cwd=directory,
                 stdout=subprocess.PIPE
             )
 
@@ -274,6 +279,7 @@ class SendMulti(View):
 
             return response
         else:
+            logger.warning("Path not found: {}".format(directory))
             return http.HttpResponseNotFound()
 
 
@@ -294,7 +300,7 @@ def send_file(request, key, path):
     return send_raw_file(request, full_path)
 
 
-def send_archive(request, key, path):  # Add base parameter and another url
+def send_archive(request, path, key=None):  # Add base parameter and another url
     if key:
         obj = get_object_or_404(SecurePath, key=key)
         target_path = obj.path.rstrip(os.sep)
