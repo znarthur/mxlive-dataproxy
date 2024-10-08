@@ -136,14 +136,20 @@ def fetch_hdf5(request, key, path, file=False):
     drive, path = os.path.splitdrive(path)  # Remove drive in case path is absolute
     path = path.lstrip(os.path.sep)
     full_path = os.path.normpath(os.path.join(document_root, path))
-    if not full_path.startswith(document_root):
-        return http.HttpResponseNotFound()
+    if '/' != full_path[0]:
+        full_path = USER_DIR + full_path
+    logger.info(f"Fetching: {full_path}")
     try:
         h5 = h5py.File(full_path, 'r')
         if file:
             return h5
         h5path_list = request.GET.getlist('entry')
         fetched_data = {}
+        if len(h5path_list):
+            if 'NXentry' == h5path_list[0].split('/')[0]:
+                NXentry = [e for e in h5.keys() if 'NXentry' in str(h5[e].attrs.get('NX_class'))]
+                if len(NXentry):
+                    h5path_list = [p.replace('NXentry', NXentry[0]) for p in h5path_list]
         for h5path in h5path_list:
             try:
                 h5_obj = h5[h5path]
@@ -185,11 +191,13 @@ def send_snapshot(request, path, key=''):  # Add base parameter and another url
         directory = USER_DIR + directory
     if not os.path.exists(directory):
         directory = re.sub(ARCHIVE_RE, ARCHIVE_DIR, directory)
+    logger.warning("Path: {}, Base {}".format(directory, USER_DIR))
     if os.path.exists(directory):
         filename = os.path.join(CACHE_DIR, key, path)
         original_file = os.path.join(directory, path)
         name, ext = os.path.splitext(path)
         pngs = glob.glob(os.path.join(directory, '{}*.png'.format(name)))
+        logger.warning("Path: {}, Extension {}".format(directory, ext))
         if ext.lower() == '.gif' and os.path.exists(filename):
             return send_raw_file(request, filename, attachment=False)
         elif ext == '.png' and os.path.exists(original_file):
@@ -205,9 +213,9 @@ def send_snapshot(request, path, key=''):  # Add base parameter and another url
                 return http.HttpResponseNotFound()
             return send_raw_file(request, filename, attachment=False)
         elif ext.lower() in ['.h5', '.nxs', '.hdf5']:
+            logger.warning("Fetching...")
             h5 = fetch_hdf5(request, key, path, file=True)
             NXentry = [e for e in h5.keys() if 'NXentry' in str(h5[e].attrs.get('NX_class'))]
-            print(NXentry)
             if NXentry:
                 NXentry = NXentry[0]
             img = get_jpeg_image_bytes(h5[NXentry + '/sample/image'][()])
